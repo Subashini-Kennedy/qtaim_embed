@@ -29,6 +29,7 @@
 *REPORT
 *DOSCAR
 *checkpoint
+*pkl
 *stdout
 *npz
 *IBZKPT
