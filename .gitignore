@@ -1,4 +1,5 @@
 ./data/*
+!data_suba/
 *CONTCAR
 *EIGENVAL
 *POTCAR
@@ -43,7 +44,6 @@ ckpt*
 *xyz
 *sdf
 *smi
-*pkl
 *gzip
 *json
 *dat
