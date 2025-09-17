@@ -1,6 +1,9 @@
-# File: scripts/filter_qtaim_qm9_to_43k.py
 """
-Filter QM9-QTAIM pickled datasets so both train and test contain only your target molecules.
+to run: 
+python filter_qm9_to_43k_new.py 
+python filter_qm9_to_43k_new.py --report-missing (to include the 12 missing ids)
+
+Filter QM9-QTAIM pickled datasets in data_suba so both train and test contain only the 43K molecules.
 
 - Works with pandas DataFrame or list-of-dicts pickles.
 - Auto-detects ID column among common names; or use --id-field (recommended: 'names').
@@ -8,20 +11,7 @@ Filter QM9-QTAIM pickled datasets so both train and test contain only your targe
 
 Examples
 --------
-# TXT whitelist where lines are like: gdb_1234.xyz
-python scripts/filter_qtaim_qm9_to_43k.py \
-  --train-pkl train_qm9_qtaim_1205_labelled_corrected.pkl \
-  --test-pkl  test_qm9_qtaim_1205_labelled_corrected.pkl \
-  --whitelist scripts/my_43K.txt \
-  --id-field names \
-  --suffix _my43K --write-csv
-
-# CSV whitelist with a specific column (e.g., GDB_Index -> names)
-python scripts/filter_qtaim_qm9_to_43k.py \
-  --train-pkl train_qm9_qtaim_1205_labelled_corrected.pkl \
-  --test-pkl  test_qm9_qtaim_1205_labelled_corrected.pkl \
-  --whitelist scripts/43.csv --whitelist-col GDB_Index \
-  --id-field names --suffix _my43K
+python filter_qm9_to_43k_new.py --id-field names --suffix _my43K --write-csv --report-missing
 """
 
 from __future__ import annotations
@@ -34,7 +24,7 @@ from typing import Any, Iterable, Optional, Sequence, Set, Tuple, Union
 
 import pandas as pd
 
-# Put 'names' first so it auto-detects for your dataset
+# Common ID field candidates
 COMMON_ID_FIELDS: Tuple[str, ...] = (
     "names",
     "smiles", "SMILES", "canonical_smiles", "cano_smiles",
@@ -79,6 +69,7 @@ def load_whitelist(paths: Sequence[Union[str, Path]], column: Optional[str]) -> 
 
 
 def load_pickle_any(path: Union[str, Path]) -> Any:
+    """Load pickle as DataFrame or Python object."""
     p = Path(path)
     if not p.exists():
         raise FileNotFoundError(f"Pickle file not found: {p}")
@@ -89,8 +80,16 @@ def load_pickle_any(path: Union[str, Path]) -> Any:
             return pickle.load(fh)
 
 
+def detect_id_field(columns: Iterable[str]) -> Optional[str]:
+    """Try to detect identifier column from known candidates."""
+    for cand in COMMON_ID_FIELDS:
+        if cand in columns:
+            return cand
+    return None
+
+
 def to_dataframe(data: Any) -> tuple[pd.DataFrame, str, str]:
-    """Return (df, kind, id_field) where kind ∈ {'dataframe','list_of_dicts'}."""
+    """Convert pickle content to DataFrame, return (df, kind, id_field)."""
     if isinstance(data, pd.DataFrame):
         id_field = detect_id_field(data.columns)
         return data.copy(), "dataframe", id_field or ""
@@ -98,62 +97,19 @@ def to_dataframe(data: Any) -> tuple[pd.DataFrame, str, str]:
         df = pd.DataFrame(data)
         id_field = detect_id_field(df.columns)
         return df, "list_of_dicts", id_field or ""
-    raise TypeError("Unsupported pickle structure. Expected pandas.DataFrame or list[dict].")
-
-
-def detect_id_field(columns: Iterable[str]) -> Optional[str]:
-    cols = list(columns)
-    for cand in COMMON_ID_FIELDS:
-        if cand in cols:
-            return cand
-    return None
-
-
-def normalize_whitelist_for_names(ids: Set[str]) -> Set[str]:
-    """Normalize whitelist when matching against the 'names' column (gdb_####[.xyz])."""
-    import re
-
-    out: Set[str] = set()
-    for raw in ids:
-        s = str(raw).strip()
-        if not s:
-            continue
-        s_noext = s[:-4] if s.lower().endswith(".xyz") else s
-
-        # Numeric only: '123'
-        if re.fullmatch(r"\d+", s_noext):
-            num = int(s_noext)
-            out.update({f"gdb_{num}", f"gdb_{num}.xyz"})
-            continue
-
-        # gdb forms with/without underscore: gdb_123 / gdb123
-        m_gdb = re.fullmatch(r"gdb_?(\d+)", s_noext)
-        if m_gdb:
-            num = int(m_gdb.group(1))
-            out.update({f"gdb_{num}", f"gdb_{num}.xyz"})
-            continue
-
-        # dsgdb9nsd_000123 → take trailing digits
-        m_dsgdb = re.search(r"(\d+)$", s_noext)
-        if m_dsgdb:
-            num = int(m_dsgdb.group(1))
-            out.update({f"gdb_{num}", f"gdb_{num}.xyz"})
-            continue
-
-        # Fallback: keep both base and base.xyz
-        out.update({s_noext, f"{s_noext}.xyz"})
-    return out
+    raise TypeError("Unsupported pickle structure. Expected DataFrame or list[dict].")
 
 
 def filter_df_to_ids(df: pd.DataFrame, ids: Set[str], id_field: str) -> pd.DataFrame:
-    if id_field not in df.columns:
-        raise KeyError(f"Identifier column '{id_field}' not found. Available: {list(df.columns)}")
-    series = df[id_field].astype(str)
-    mask = series.isin(ids)
+    """Filter DataFrame rows where ID (with .xyz) matches whitelist IDs (without .xyz)."""
+    df_ids = df[id_field].astype(str).str.replace(".xyz", "", regex=False)
+    ids_normalized = {x.replace(".xyz", "") for x in ids}
+    mask = df_ids.isin(ids_normalized)
     return df.loc[mask].copy()
 
 
 def restore_to_original_type(df: pd.DataFrame, kind: str) -> Any:
+    """Convert filtered DataFrame back to original type."""
     if kind == "dataframe":
         return df
     if kind == "list_of_dicts":
@@ -162,30 +118,57 @@ def restore_to_original_type(df: pd.DataFrame, kind: str) -> Any:
 
 
 def add_suffix_to_filename(path: Union[str, Path], suffix: str, outdir: Optional[Union[str, Path]] = None) -> Path:
+    """Add suffix before file extension."""
     p = Path(path)
     stem = p.stem
-    suffixes = "".join(p.suffixes)  # keep .pkl or .pkl.gz
+    suffixes = "".join(p.suffixes)
     parent = Path(outdir) if outdir else p.parent
     return parent / f"{stem}{suffix}{suffixes}"
 
 
 def summarize_split(name: str, df: pd.DataFrame, id_field: str, ids: Set[str]) -> str:
+    """Summarize row/ID counts and coverage relative to whitelist."""
+    df_ids = df[id_field].astype(str).str.replace(".xyz", "", regex=False)
+    ids_normalized = {x.replace(".xyz", "") for x in ids}
     n_rows = len(df)
-    n_unique = df[id_field].astype(str).nunique() if id_field in df.columns else 0
-    cov = (n_unique / max(1, len(ids))) * 100.0
-    return f"{name}: rows={n_rows}, unique_ids={n_unique}, whitelist_size={len(ids)}, coverage={cov:.2f}%"
+    n_unique = df_ids.nunique()
+    cov = (n_unique / max(1, len(ids_normalized))) * 100.0
+    return f"{name}: rows={n_rows}, unique_ids={n_unique}, whitelist_size={len(ids_normalized)}, coverage={cov:.2f}%"
+
+
+def find_missing_ids(train_df: pd.DataFrame, test_df: pd.DataFrame, ids: Set[str], id_field: str) -> Set[str]:
+    """Return whitelist IDs not found in train/test."""
+    wl_ids = {x.replace(".xyz", "") for x in ids}
+    train_ids = set(train_df[id_field].astype(str).str.replace(".xyz", "", regex=False))
+    test_ids = set(test_df[id_field].astype(str).str.replace(".xyz", "", regex=False))
+    all_ids = train_ids | test_ids
+    return wl_ids - all_ids
 
 
 def main(argv: Optional[Sequence[str]] = None) -> None:
     parser = argparse.ArgumentParser(description="Filter QM9-QTAIM train/test pickles to your whitelist of molecule IDs.")
-    parser.add_argument("--train-pkl", required=True, help="Path to train .pkl file")
-    parser.add_argument("--test-pkl", required=True, help="Path to test .pkl file")
-    parser.add_argument("--whitelist", required=True, nargs="+", help="One or more whitelist files")
+    parser.add_argument(
+        "--train-pkl",
+        default="/home/suba/Documents/GitHub/qtaim_embed_private/data_suba/train_qm9_qtaim_1205_labelled_corrected.pkl",
+        help="Path to train .pkl file",
+    )
+    parser.add_argument(
+        "--test-pkl",
+        default="/home/suba/Documents/GitHub/qtaim_embed_private/data_suba/test_qm9_qtaim_1205_labelled_corrected.pkl",
+        help="Path to test .pkl file",
+    )
+    parser.add_argument(
+        "--whitelist",
+        default=["/home/suba/Documents/GitHub/qtaim_embed_private/data_suba/my_43K.txt"],
+        nargs="+",
+        help="One or more whitelist files",
+    )
     parser.add_argument("--whitelist-col", default=None, help="Column in CSV/TSV with IDs")
-    parser.add_argument("--id-field", default=None, help="Identifier column in pickles (e.g., 'names')")
+    parser.add_argument("--id-field", default="names", help="Identifier column in pickles (e.g., 'names')")
     parser.add_argument("--suffix", default="_my43k", help="Suffix for output filenames")
     parser.add_argument("--outdir", default=None, help="Output directory")
     parser.add_argument("--write-csv", action="store_true", help="Also save CSV copies")
+    parser.add_argument("--report-missing", action="store_true", help="Save missing IDs to missing_ids.csv")
     parser.add_argument("--dry-run", action="store_true", help="Compute only; write nothing")
     parser.add_argument("--log-level", default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR"])
 
@@ -195,7 +178,7 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
 
     ids = load_whitelist(args.whitelist, args.whitelist_col)
 
-    # Load pickles
+    # Load train/test pickles
     train_raw = load_pickle_any(args.train_pkl)
     test_raw = load_pickle_any(args.test_pkl)
 
@@ -206,10 +189,6 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
     id_field = args.id_field or train_auto or test_auto
     if not id_field:
         raise ValueError("Could not auto-detect an identifier column. Use --id-field (e.g., --id-field names).")
-
-    # Normalize whitelist for 'names'
-    if id_field == "names":
-        ids = normalize_whitelist_for_names(ids)
 
     logging.info(f"Using identifier column: '{id_field}' (train kind={train_kind}, test kind={test_kind})")
 
@@ -223,12 +202,19 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
     logging.info(summarize_split("train(before)", train_df, id_field, ids))
     logging.info(summarize_split("test(before)", test_df, id_field, ids))
 
-    # Filter
+   # Filter
     train_f = filter_df_to_ids(train_df, ids, id_field)
     test_f = filter_df_to_ids(test_df, ids, id_field)
 
     logging.info(summarize_split("train(after)", train_f, id_field, ids))
     logging.info(summarize_split("test(after)", test_f, id_field, ids))
+
+    # Report missing IDs if requested
+    if args.report_missing:
+        missing_ids = find_missing_ids(train_f, test_f, ids, id_field)
+        missing_csv = Path(args.outdir or Path(args.train_pkl).parent) / "missing_ids.csv"
+        pd.DataFrame({"missing_ids": sorted(missing_ids)}).to_csv(missing_csv, index=False)
+        logging.info(f"Wrote missing IDs to {missing_csv} (count={len(missing_ids)})")
 
     if args.dry_run:
         logging.info("Dry-run: no files written.")
@@ -256,15 +242,15 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
     logging.info(f"Wrote: {out_train_pkl}")
     logging.info(f"Wrote: {out_test_pkl}")
 
-    if args.write_csv:
-        train_csv = out_train_pkl.with_suffix("")
-        train_csv = train_csv.with_name(train_csv.name + ".csv")
-        test_csv = out_test_pkl.with_suffix("")
-        test_csv = test_csv.with_name(test_csv.name + ".csv")
-        train_f.to_csv(train_csv, index=False)
-        test_f.to_csv(test_csv, index=False)
-        logging.info(f"Wrote: {train_csv}")
-        logging.info(f"Wrote: {test_csv}")
+   
+    train_csv = out_train_pkl.with_suffix("")
+    train_csv = train_csv.with_name(train_csv.name + ".csv")
+    test_csv = out_test_pkl.with_suffix("")
+    test_csv = test_csv.with_name(test_csv.name + ".csv")
+    train_f.to_csv(train_csv, index=False)
+    test_f.to_csv(test_csv, index=False)
+    logging.info(f"Wrote: {train_csv}")
+    logging.info(f"Wrote: {test_csv}")
 
 
 if __name__ == "__main__":
