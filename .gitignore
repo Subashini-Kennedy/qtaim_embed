@@ -57,7 +57,8 @@ ckpt*
 *csv
 *ckpt
 *log
-!logs_suba/
+!logs_suba/**/*.out/
+!logs_suba/**/*.err/
 *wandb
 *yaml
 *tfevents
