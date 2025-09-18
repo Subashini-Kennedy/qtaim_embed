@@ -57,7 +57,7 @@ ckpt*
 *csv
 *ckpt
 *log
-!logs_suba
+!logs_suba/
 *wandb
 *yaml
 *tfevents
