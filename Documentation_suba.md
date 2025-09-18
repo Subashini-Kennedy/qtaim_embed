@@ -21,4 +21,7 @@
     - Missing ids: 12 molecules in my_43K.txt cannot be found in the .pkl files
       list of the missing ids can be seen in the jupyter notebook: filter_qm9_to 43K.ipynb
 
+3) Converting .pkl files to LMDB for easier processing 
+
+    
       

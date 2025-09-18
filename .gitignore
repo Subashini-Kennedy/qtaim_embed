@@ -4,7 +4,6 @@
 *POTCAR
 *OUT
 *KPOINTS
-*sh
 *PCDAT
 *INCAR
 *POSCAR*
@@ -47,6 +46,7 @@ ckpt*
 *pkl
 *gzip
 *json
+!settings_qm9_multi.json
 *dat
 *git 
 *gz
@@ -59,7 +59,11 @@ ckpt*
 *log
 *wandb
 *yaml
-*tfevents*
-qtaim_embed.egg-info/not-zip-safe
+*tfevents
+*qtaim_embed.egg-info/not-zip-safe
 *lmdb-lock
 *png
+*sh
+!make_qm9_lmdb_multi.sh
+*ipynb
+!filter_qm9_to_43K.ipynb
