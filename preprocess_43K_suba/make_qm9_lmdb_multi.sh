@@ -8,8 +8,8 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=48
 #SBATCH --gpus-per-node=1
-#SBATCH -o /lustre/fsn1/projects/rech/ihj/%u/qtaim_embed_proj/logs/%x_%j.out
-#SBATCH -e /lustre/fsn1/projects/rech/ihj/%u/qtaim_embed_proj/logs/%x_%j.err
+#SBATCH -o /lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/logs_suba/%x_%j.out
+#SBATCH -e /lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/logs_suba/%x_%j.err
 
 set -eo pipefail
 
@@ -36,10 +36,10 @@ export TMPDIR="${JOBSCRATCH:-/tmp}"
 ulimit -n 4096
 
 # paths
-CFG="/lustre/fswork/projects/rech/ihj/$USER/qtaim_embed_proj/configs/settings_qm9_multi.json"
-TRAIN_PKL="/lustre/fsn1/projects/rech/ihj/$USER/qtaim_embed_proj/data/train_qm9_qtaim_1205_labelled_corrected.pkl"
-TEST_PKL="/lustre/fsn1/projects/rech/ihj/$USER/qtaim_embed_proj/data/test_qm9_qtaim_1205_labelled_corrected.pkl"
-OUT_ROOT="/lustre/fsn1/projects/rech/ihj/$USER/qtaim_embed_proj/data/qm9_lmdb_multi"
+CFG="/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/configs_suba/settings_qm9_multi.json"
+TRAIN_PKL="/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/data_suba/train_qm9_qtaim_1205_labelled_corrected.pkl"
+TEST_PKL="/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/data_suba/test_qm9_qtaim_1205_labelled_corrected.pkl"
+OUT_ROOT="/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/data_suba/lmdb/qm9_lmdb_multi"
 
 mkdir -p "$OUT_ROOT/train" "$OUT_ROOT/test"
 
