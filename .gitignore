@@ -60,7 +60,7 @@ ckpt*
 *ckpt
 *log
 *err
-!logs_suba/**/*.err/
+!logs_suba/**
 *wandb
 *yaml
 *tfevents
