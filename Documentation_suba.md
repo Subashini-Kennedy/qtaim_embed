@@ -21,7 +21,17 @@
     - Missing ids: 12 molecules in my_43K.txt cannot be found in the .pkl files
       list of the missing ids can be seen in the jupyter notebook: filter_qm9_to 43K.ipynb
 
-3) Converting .pkl files to LMDB for easier processing 
+3) Converting .pkl files to LMDB for easier processing
+
+   - For whole qm9:
+   - Script: preprocess_43K_suba/make_qm9_lmdb_multi.sh : uses configs_suba/settings_qm9_multi.json to create LMDB files
+   - Added sitecustomize.py to handle "is_ordered" error, extrakeys:global ['humo', lumo','gap']
+   - Logs: logs_suba/lmdb/
+
+    - For 43K subset:
+   - Script: preprocess_43K_suba/make_qm9_lmdb_multi_43k.sh : uses configs_suba/settings_qm9_multi_43k.json to create LMDB files
+   - Logs: logs_suba/lmdb/
+     
 
     
       

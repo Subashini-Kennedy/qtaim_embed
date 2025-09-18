@@ -17,14 +17,14 @@
     "log_every_n_steps": 500
   },
   "dataset": {
-    "train_dataset_loc": "/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_proj/data/train_qm9_qtaim_1205_labelled_corrected.pkl",
-    "test_dataset_loc":  "/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_proj/data/test_qm9_qtaim_1205_labelled_corrected.pkl",
+    "train_dataset_loc": "/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/data_suba/train_qm9_qtaim_1205_labelled_corrected.pkl",
+    "test_dataset_loc":  "/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/data_suba/test_qm9_qtaim_1205_labelled_corrected.pkl",
 
-    "train_lmdb": "/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_proj/data/qm9_lmdb_multi/train",
-    "val_lmdb":   "/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_proj/data/qm9_lmdb_multi/test",
-    "test_lmdb":  "/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_proj/data/qm9_lmdb_multi/test",
+    "train_lmdb": "/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/data_suba/qm9_lmdb_multi/train",
+    "val_lmdb":   "/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/data_suba/qm9_lmdb_multi/test",
+    "test_lmdb":  "/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/data_suba/qm9_lmdb_multi/test",
 
-    "log_save_dir": "/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_proj/runs/qm9_multi",
+    "log_save_dir": "/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/logs_suba/lmdb/",
 
     "verbose": false,
     "debug": false,
@@ -58,7 +58,7 @@
     "extra_keys": {
       "atom":  ["extra_feat_atom_Hamiltonian_K"],
       "bond":  ["extra_feat_bond_Lagrangian_K", "extra_feat_bond_Hamiltonian_K"],
-      "global": []
+      "global": ["homo","lumo","gap"]
     }
   },
   "model": {
@@ -126,6 +126,6 @@
     "max_epochs": 600,
     "extra_stop_patience": 50
   },
-  "output_dir": "/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_proj/runs/qm9_multi",
-  "checkpoint_dir": "/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_proj/checkpoints/qm9_multi"
+  "output_dir": "/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/logs_suba/lmdb/",
+  "checkpoint_dir": "/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/checkpoints_suba/lmdb/"
 }

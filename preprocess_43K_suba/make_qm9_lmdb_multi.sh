@@ -8,8 +8,9 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=48
 #SBATCH --gpus-per-node=1
-#SBATCH -o /lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/logs_suba/%x_%j.out
-#SBATCH -e /lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/logs_suba/%x_%j.err
+#SBATCH -o /lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/logs_suba/lmdb/%x_%j.out
+#SBATCH -e /lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/logs_suba/lmdb/%x_%j.err
+
 
 set -eo pipefail
 
@@ -22,7 +23,7 @@ source /lustre/fsn1/projects/rech/ihj/$USER/qtaim_embed_proj/env/activate_qtaim.
 
 # Make sure sitecustomize.py (with the pymatgen patch) is found
 export PYTHONNOUSERSITE=1
-export PYTHONPATH=/lustre/fsn1/projects/rech/ihj/$USER/qtaim_embed_proj/code:$PYTHONPATH
+export PYTHONPATH=/lustre/fsn1/projects/rech/ihj/$USER/qtaim_embed_private:$PYTHONPATH
 
 
 # keep native libs tame; avoid MKL var error
