@@ -39,6 +39,7 @@
 *index
 ckpt*
 *out
+!logs_suba/**/*.out/
 *npy
 *xyz
 *sdf
@@ -57,7 +58,7 @@ ckpt*
 *csv
 *ckpt
 *log
-!logs_suba/**/*.out/
+*err
 !logs_suba/**/*.err/
 *wandb
 *yaml
