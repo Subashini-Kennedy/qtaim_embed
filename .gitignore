@@ -39,7 +39,7 @@
 *index
 ckpt*
 *out
-!logs_suba/**/*.out/
+!logs_suba/**
 *npy
 *xyz
 *sdf
