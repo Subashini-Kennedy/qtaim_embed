@@ -48,6 +48,7 @@ ckpt*
 *gzip
 *json
 !settings_qm9_multi.json
+!settings_qm9_multi_43k.json
 *dat
 *git 
 *gz
