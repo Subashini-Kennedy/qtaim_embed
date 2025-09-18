@@ -31,6 +31,11 @@
     - For 43K subset:
    - Script: preprocess_43K_suba/make_qm9_lmdb_multi_43k.sh : uses configs_suba/settings_qm9_multi_43k.json to create LMDB files
    - Logs: logs_suba/lmdb/
+
+4) Using LMDB for training 
+
+   - For whole qm9:
+   - Script: 
      
 
     
