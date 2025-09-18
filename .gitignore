@@ -70,5 +70,6 @@ ckpt*
 *sh
 !make_qm9_lmdb_multi.sh
 !make_qm9_lmdb_multi_43k.sh
+!run_qm9_multi.sh
 *ipynb
 !filter_qm9_to_43K.ipynb

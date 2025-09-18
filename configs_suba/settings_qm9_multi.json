@@ -20,9 +20,9 @@
     "train_dataset_loc": "/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/data_suba/train_qm9_qtaim_1205_labelled_corrected.pkl",
     "test_dataset_loc":  "/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/data_suba/test_qm9_qtaim_1205_labelled_corrected.pkl",
 
-    "train_lmdb": "/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/data_suba/qm9_lmdb_multi/train",
-    "val_lmdb":   "/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/data_suba/qm9_lmdb_multi/test",
-    "test_lmdb":  "/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/data_suba/qm9_lmdb_multi/test",
+    "train_lmdb": "/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/data_suba/lmdb/qm9_lmdb_multi/train/molecule.lmdb",
+    "val_lmdb":   "/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/data_suba/lmdb/qm9_lmdb_multi/test/molecule.lmdb",
+    "test_lmdb":  "/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/data_suba/lmdb/qm9_lmdb_multi/test/molecule.lmdb",
 
     "log_save_dir": "/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/logs_suba/lmdb/",
 
