@@ -49,6 +49,7 @@ ckpt*
 !settings_qm9_multi.json
 !settings_qm9_multi_43k.json
 !settings_qm9_nonlmdb.json
+!settings_qm9_nonlmdb_43k.json
 *dat
 *git 
 *gz
@@ -71,6 +72,7 @@ ckpt*
 !make_qm9_lmdb_multi_43k.sh
 !run_qm9_multi.sh
 !run_qm9_multi_nonlmdb.sh
+!run_qm9_multi_nonlmdb_43k.sh
 *ipynb
 !filter_qm9_to_43K.ipynb
 logs_suba/**
