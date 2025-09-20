@@ -39,7 +39,6 @@
 *index
 ckpt*
 *out
-!logs_suba/**
 *npy
 *xyz
 *sdf
@@ -60,7 +59,6 @@ ckpt*
 *ckpt
 *log
 *err
-!logs_suba/**
 *wandb
 *yaml
 *tfevents
@@ -73,3 +71,11 @@ ckpt*
 !run_qm9_multi.sh
 *ipynb
 !filter_qm9_to_43K.ipynb
+logs_suba/**
+!logs_suba/
+!logs_suba/**/*.out
+!logs_suba/**/*.err
+!logs_suba/lmdb/**
+**/*.tfevents*
+**/*.ckpt
+**/.ipynb_checkpoints/
