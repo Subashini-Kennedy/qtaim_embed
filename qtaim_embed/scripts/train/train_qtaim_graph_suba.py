@@ -161,7 +161,7 @@ if __name__ == "__main__":
 
         if dataset_test_loc is not None:
 
-            batch_graph, batch_labels = next(iter(dm_test.test_dataloader()))
+            #batch_graph, batch_labels = next(iter(dm_test.test_dataloader()))
             scalers = dm.full_dataset.label_scalers
 
             if config["dataset"]["per_atom"] == True:
@@ -172,8 +172,9 @@ if __name__ == "__main__":
                     preds_unscaled,
                     labels_unscaled,
                 ) = model.evaluate_manually(
-                    batch_graph=batch_graph,
-                    batch_label=batch_labels,
+                    #batch_graph=batch_graph,
+                    #batch_label=batch_labels,
+                    dm_test.test_dataloader(),
                     scaler_list=scalers,
                     per_atom=True,
                 )
@@ -190,6 +191,16 @@ if __name__ == "__main__":
                     "preds_unscaled": preds_unscaled.numpy(),
                     "labels_unscaled": labels_unscaled.numpy(),
                 }
+
+                # log to wandb
+                wandb.log(
+                    {
+                        "test/mae_per_atom": mean_mae_test.item(),
+                        "test/rmse_per_atom": mean_rmse_test.item(),
+                        "test/ewt_prop": ewt_prop_test.item(),
+                    }
+                )
+                
             else:
                 (
                     r2_val,
@@ -200,21 +211,53 @@ if __name__ == "__main__":
                 ) = model.evaluate_manually(
                     batch_graph, batch_labels, scalers, per_atom=False
                 )
+
+                # Convert to numpy
+                r2_val, mae_val, mse_val = (
+                    r2_val.cpu().numpy(), 
+                    mae_val.cpu().numpy(), 
+                    mse_val.cpu().numpy(),
+                )
+
                 # make a table of the results
                 print(">" * 40 + "test_results" + "<" * 40)
-                print("r2_test: ", r2_val.numpy())
-                print("mae_test: ", mae_val.numpy())
-                print("mse_test: ", mse_val.numpy())
-                # save results to pkl
+                print(f"r2_mean : {r2_val.mean():.4f}")
+                print(f"mae_mean: {mae_val.mean():.4f}")
+                print(f"mse_mean: {mse_val.mean():.4f}")
+
+                print("\nPer-task Metrics:")
+                for i, (r2, mae, mse) in enumerate(zip(r2_val, mae_val, mse_val)):
+                    print(f"Task {i}: R2={r2:.4f}, MAE={mae:.4f}, MSE={mse:.4f}")
+
+                # Save results to dict
                 results = {
-                    "r2_val": r2_val.numpy(),
-                    "mae_val": mae_val.numpy(),
-                    "mse_val": mse_val.numpy(),
-                    "preds_unscaled": preds_unscaled.numpy(),
-                    "labels_unscaled": labels_unscaled.numpy(),
+                    "r2_val": r2_val,
+                    "mae_val": mae_val,
+                    "mse_val": mse_val,
+                    "r2_mean": r2_val.mean(),
+                    "mae_mean": mae_val.mean(),
+                    "mse_mean": mse_val.mean(),
+                    "preds_unscaled": preds_unscaled.cpu().numpy(),
+                    "labels_unscaled": labels_unscaled.cpu().numpy(),
                 }
-            pd.to_pickle(
-                results, config["dataset"]["log_save_dir"] + "test_results.pkl"
-            )
+                pd.to_pickle(results, config["dataset"]["log_save_dir"] + "test_results.pkl")
+
+                # Log to wandb
+                wandb.log(
+                    {
+                        "test/r2_mean": r2_val.mean(),
+                        "test/mae_mean": mae_val.mean(),
+                        "test/mse_mean": mse_val.mean(),
+                    }
+                )
+                for i, (r2, mae, mse) in enumerate(zip(r2_val, mae_val, mse_val)):
+                    wandb.log(
+                        {
+                            f"test/r2_task{i}": r2,
+                            f"test/mae_task{i}": mae,
+                            f"test/mse_task{i}": mse,
+                        }
+                    )
+
 
     run.finish()

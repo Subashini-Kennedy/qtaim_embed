@@ -58,6 +58,7 @@ ckpt*
 *PKG-INFO
 *pyc
 *csv
+!qm9_43k_clean.csv
 *ckpt
 *log
 *err
