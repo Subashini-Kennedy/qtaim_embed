@@ -2,7 +2,7 @@
 #SBATCH -A ihj@h100
 #SBATCH -p gpu_p6
 #SBATCH -C h100
-#SBATCH -J train_qm9_multi
+#SBATCH -J train_qm9_multi_43k
 #SBATCH -t 18:00:00
 #SBATCH -N 1
 #SBATCH --ntasks=1
@@ -84,7 +84,7 @@ mkdir -p "$(dirname "$LOC_CFG")" "$SCRATCH_LMDB"
 
 # -------- Stage LMDBs to scratch for speed --------
 rsync -a --delete \
-  "/lustre/fsn1/projects/rech/ihj/$USER/qtaim_embed_private/data_suba/lmdb/qm9_lmdb_multi/" \
+  "/lustre/fsn1/projects/rech/ihj/$USER/qtaim_embed_private/data_suba/lmdb/qm9_lmdb_multi_43k/" \
   "${SCRATCH_LMDB}/"
 
 # Optional resume: pick a checkpoint under logs_suba first
@@ -137,8 +137,8 @@ print("checkpoint_dir:", cfg["checkpoint_dir"])
 PY
 
 # ---------------- Run ----------------
-srun --cpu-bind=none python -u -m qtaim_embed.scripts.train.train_qtaim_graph \
+srun --cpu-bind=none python -u -m qtaim_embed.scripts.train.train_qtaim_graph_43k \
   -config "${LOC_CFG}" \
-  -project_name "qm9_qtaim_multi" \
+  -project_name "qm9_qtaim_multi_43k" \
   -log_save_dir "${LOG_DIR}" \
   --use_lmdb

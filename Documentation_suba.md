@@ -34,9 +34,11 @@
 
 4) Using LMDB for training 
 
-   - For whole qm9:
-   - Script: 
+   - For whole qm9: 1440134
+   - Script:
+
+  - For 43K: 1651344 
      
 
     
-      
+     

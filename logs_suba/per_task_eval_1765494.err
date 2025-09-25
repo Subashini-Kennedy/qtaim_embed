@@ -1,0 +1,20 @@
+Traceback (most recent call last):
+  File "/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/logs_suba/using_lmdb/per_task_from_ckpt_lmdb.py", line 331, in <module>
+    main()
+  File "/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/logs_suba/using_lmdb/per_task_from_ckpt_lmdb.py", line 328, in main
+    evaluate_one_ckpt(args.config, ckpt_path, sub_out, args.device, args.test_bs, args.tag)
+  File "/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/logs_suba/using_lmdb/per_task_from_ckpt_lmdb.py", line 272, in evaluate_one_ckpt
+    for batch in loader:
+  File "/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_proj/env/qtaim_embed/lib/python3.10/site-packages/torch/utils/data/dataloader.py", line 630, in __next__
+    data = self._next_data()
+  File "/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_proj/env/qtaim_embed/lib/python3.10/site-packages/torch/utils/data/dataloader.py", line 673, in _next_data
+    data = self._dataset_fetcher.fetch(index)  # may raise StopIteration
+  File "/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_proj/env/qtaim_embed/lib/python3.10/site-packages/torch/utils/data/_utils/fetch.py", line 55, in fetch
+    return self.collate_fn(data)
+  File "/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_proj/env/qtaim_embed/lib/python3.10/site-packages/torch/utils/data/_utils/collate.py", line 317, in default_collate
+    return collate(batch, collate_fn_map=default_collate_fn_map)
+  File "/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_proj/env/qtaim_embed/lib/python3.10/site-packages/torch/utils/data/_utils/collate.py", line 192, in collate
+    raise TypeError(default_collate_err_msg_format.format(elem_type))
+TypeError: default_collate: batch must contain tensors, numpy arrays, numbers, dicts or lists; found <class 'dgl.heterograph.DGLGraph'>
+srun: error: jzxh014: task 0: Exited with exit code 1
+srun: Terminating StepId=1765494.0
