@@ -47,3 +47,4 @@ data/tmqm_all/
 
 # Misc
 wandb/
+data_suba/*.csv
