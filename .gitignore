@@ -48,3 +48,5 @@ data/tmqm_all/
 # Misc
 wandb/
 data_suba/*.csv
+data_suba/*.csv
+data_suba/*.pkl
