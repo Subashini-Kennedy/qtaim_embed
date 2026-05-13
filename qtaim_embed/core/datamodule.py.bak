@@ -25,10 +25,13 @@ from qtaim_embed.data.lmdb import TransformMol
 
 
 class QTAIMLinkTaskDataModule(pl.LightningDataModule):
-    def __init__(self, config=None):
+    def __init__(
+        self,
+        config: dict = None,
+    ):
         super().__init__()
         self.prepare_tf = False
-        if config is None:
+        if config == None:
             self.config = get_default_node_level_config()
         else:
             self.config = config
@@ -42,7 +45,9 @@ class QTAIMLinkTaskDataModule(pl.LightningDataModule):
         else:
             if self.config["dataset"]["edge_dropout"] > 0.0:
                 print("... > using edge dropout on datamodule")
-                self.transforms = DropBondHeterograph(p=config["dataset"]["edge_dropout"])
+                self.transforms = DropBondHeterograph(
+                    p=config["dataset"]["edge_dropout"]
+                )
             else:
                 self.transforms = None
 
@@ -52,12 +57,14 @@ class QTAIMLinkTaskDataModule(pl.LightningDataModule):
         if stage in (None, "fit", "validate"):
             self.train_ds = self.train_dataset
             self.val_ds = self.val_dataset
+
         if stage in ("test", "predict"):
             self.test_ds = self.test_dataset
 
     def prepare_data(self, stage=None):
         if self.prepare_tf == False:
             if stage == "fit" or stage is None:
+                # Assign train/val datasets for use in dataloaders
                 self.full_dataset = HeteroGraphNodeLabelDataset(
                     file=self.config["dataset"]["train_dataset_loc"],
                     allowed_ring_size=self.config["dataset"]["allowed_ring_size"],
@@ -71,8 +78,12 @@ class QTAIMLinkTaskDataModule(pl.LightningDataModule):
                     debug=self.config["dataset"]["debug"],
                     log_scale_features=self.config["dataset"]["log_scale_features"],
                     log_scale_targets=self.config["dataset"]["log_scale_targets"],
-                    standard_scale_features=self.config["dataset"]["standard_scale_features"],
-                    standard_scale_targets=self.config["dataset"]["standard_scale_targets"],
+                    standard_scale_features=self.config["dataset"][
+                        "standard_scale_features"
+                    ],
+                    standard_scale_targets=self.config["dataset"][
+                        "standard_scale_targets"
+                    ],
                     bond_key=self.config["dataset"]["bond_key"],
                     map_key=self.config["dataset"]["map_key"],
                     verbose=self.config["dataset"]["verbose"],
@@ -81,34 +92,45 @@ class QTAIMLinkTaskDataModule(pl.LightningDataModule):
                 test_size = self.config["dataset"]["test_prop"]
 
                 if test_size > 0.0:
-                    (self.train_dataset, self.val_dataset, self.test_dataset) = \
-                        train_validation_test_split(
-                            self.full_dataset,
-                            test=test_size,
-                            validation=validation,
-                            random_seed=self.config["dataset"]["seed"],
-                        )
+                    (
+                        self.train_dataset,
+                        self.val_dataset,
+                        self.test_dataset,
+                    ) = train_validation_test_split(
+                        self.full_dataset,
+                        test=test_size,
+                        validation=validation,
+                        random_seed=self.config["dataset"]["seed"],
+                    )
                 else:
                     print("... > no test set in datamodule")
-                    (self.train_dataset, self.val_dataset) = \
-                        train_validation_test_split(
-                            self.full_dataset,
-                            test=0.0,
-                            validation=validation,
-                            random_seed=self.config["dataset"]["seed"],
-                        )
+                    (
+                        self.train_dataset,
+                        self.val_dataset,
+                    ) = train_validation_test_split(
+                        self.full_dataset,
+                        test=0.0,
+                        validation=validation,
+                        random_seed=self.config["dataset"]["seed"],
+                    )
 
                 self.prepare_tf = True
+
                 if self.node_len is None:
                     feat_dict = self.train_dataset.feature_size
                     self.node_len = feat_dict["atom"] + feat_dict["global"]
-                return (self.train_dataset.feature_names, self.train_dataset.feature_size)
+
+                return (
+                    self.train_dataset.feature_names,
+                    self.train_dataset.feature_size,
+                )
 
             if stage == "test" or stage == "predict":
-                assert self.config["dataset"]["test_dataset_loc"] is not None, \
-                    "test_dataset_loc is None"
+                assert (
+                    self.config["dataset"]["test_dataset_loc"] is not None
+                ), "test_dataset_loc is None"
                 self.test_dataset = HeteroGraphNodeLabelDataset(
-                    file=self.config["dataset"]["test_dataset_loc"],
+                    file=self.test_dataset_loc,
                     allowed_ring_size=self.config["dataset"]["allowed_ring_size"],
                     allowed_charges=self.config["dataset"]["allowed_charges"],
                     allowed_spins=self.config["dataset"]["allowed_spins"],
@@ -120,22 +142,37 @@ class QTAIMLinkTaskDataModule(pl.LightningDataModule):
                     debug=self.config["dataset"]["debug"],
                     log_scale_features=self.config["dataset"]["log_scale_features"],
                     log_scale_targets=self.config["dataset"]["log_scale_targets"],
-                    standard_scale_features=self.config["dataset"]["standard_scale_features"],
+                    standard_scale_features=self.config["dataset"][
+                        "standard_scale_features"
+                    ],
                     bond_key=self.config["dataset"]["bond_key"],
                     map_key=self.config["dataset"]["map_key"],
-                    standard_scale_targets=self.config["dataset"]["standard_scale_targets"],
+                    standard_scale_targets=self.config["dataset"][
+                        "standard_scale_targets"
+                    ],
                     verbose=self.config["dataset"]["verbose"],
                 )
                 self.prepare_tf = True
                 if self.node_len is None:
                     feat_dict = self.test_dataset.feature_size
                     self.node_len = feat_dict["atom"] + feat_dict["global"]
-                return (self.test_dataset.feature_names, self.test_dataset.feature_size)
+
+                return (
+                    self.test_dataset.feature_names,
+                    self.test_dataset.feature_size,
+                )
+
         else:
             if stage == "fit" or stage is None:
-                return (self.train_dataset.feature_names, self.train_dataset.feature_size)
+                return (
+                    self.train_dataset.feature_names,
+                    self.train_dataset.feature_size,
+                )
             else:
-                return (self.test_dataset.feature_names, self.test_dataset.feature_size)
+                return (
+                    self.test_dataset.feature_names,
+                    self.test_dataset.feature_size,
+                )
 
     def train_dataloader(self):
         dl = DataLoaderLinkTaskHeterograph(
@@ -154,6 +191,7 @@ class QTAIMLinkTaskDataModule(pl.LightningDataModule):
             batch_size=len(self.val_dataset),
             transforms=self.transforms,
         )
+
         if self.node_len is None:
             _, _, ft = next(iter(dl))
             self.node_len = ft.shape[1]
@@ -165,6 +203,7 @@ class QTAIMLinkTaskDataModule(pl.LightningDataModule):
             batch_size=len(self.test_dataset),
             transforms=self.transforms,
         )
+
         if self.node_len is None:
             _, _, ft = next(iter(dl))
             self.node_len = ft.shape[1]
@@ -172,10 +211,13 @@ class QTAIMLinkTaskDataModule(pl.LightningDataModule):
 
 
 class QTAIMNodeTaskDataModule(pl.LightningDataModule):
-    def __init__(self, config=None):
+    def __init__(
+        self,
+        config: dict = None,
+    ):
         super().__init__()
         self.prepare_tf = False
-        if config is None:
+        if config == None:
             self.config = get_default_node_level_config()
         else:
             self.config = config
@@ -189,7 +231,9 @@ class QTAIMNodeTaskDataModule(pl.LightningDataModule):
         else:
             if self.config["dataset"]["edge_dropout"] > 0.0:
                 print("... > using edge dropout on datamodule")
-                self.transforms = DropBondHeterograph(p=config["dataset"]["edge_dropout"])
+                self.transforms = DropBondHeterograph(
+                    p=config["dataset"]["edge_dropout"]
+                )
             else:
                 self.transforms = None
 
@@ -197,12 +241,14 @@ class QTAIMNodeTaskDataModule(pl.LightningDataModule):
         if stage in (None, "fit", "validate"):
             self.train_ds = self.train_dataset
             self.val_ds = self.val_dataset
+
         if stage in ("test", "predict"):
             self.test_ds = self.test_dataset
 
     def prepare_data(self, stage=None):
         if self.prepare_tf == False:
             if stage == "fit" or stage is None:
+                # Assign train/val datasets for use in dataloaders
                 self.full_dataset = HeteroGraphNodeLabelDataset(
                     file=self.config["dataset"]["train_dataset_loc"],
                     allowed_ring_size=self.config["dataset"]["allowed_ring_size"],
@@ -216,41 +262,55 @@ class QTAIMNodeTaskDataModule(pl.LightningDataModule):
                     debug=self.config["dataset"]["debug"],
                     log_scale_features=self.config["dataset"]["log_scale_features"],
                     log_scale_targets=self.config["dataset"]["log_scale_targets"],
-                    standard_scale_features=self.config["dataset"]["standard_scale_features"],
-                    standard_scale_targets=self.config["dataset"]["standard_scale_targets"],
+                    standard_scale_features=self.config["dataset"][
+                        "standard_scale_features"
+                    ],
+                    standard_scale_targets=self.config["dataset"][
+                        "standard_scale_targets"
+                    ],
                     verbose=self.config["dataset"]["verbose"],
                     bond_key=self.config["dataset"]["bond_key"],
                     map_key=self.config["dataset"]["map_key"],
                 )
+
                 validation = self.config["dataset"]["val_prop"]
                 test_size = self.config["dataset"]["test_prop"]
 
                 if test_size > 0.0:
-                    (self.train_dataset, self.val_dataset, self.test_dataset) = \
-                        train_validation_test_split(
-                            self.full_dataset,
-                            test=test_size,
-                            validation=validation,
-                            random_seed=self.config["dataset"]["seed"],
-                        )
+                    (
+                        self.train_dataset,
+                        self.val_dataset,
+                        self.test_dataset,
+                    ) = train_validation_test_split(
+                        self.full_dataset,
+                        test=test_size,
+                        validation=validation,
+                        random_seed=self.config["dataset"]["seed"],
+                    )
                 else:
                     print("... > no test set in datamodule")
-                    (self.train_dataset, self.val_dataset) = \
-                        train_validation_test_split(
-                            self.full_dataset,
-                            test=0.0,
-                            validation=validation,
-                            random_seed=self.config["dataset"]["seed"],
-                        )
+                    (
+                        self.train_dataset,
+                        self.val_dataset,
+                    ) = train_validation_test_split(
+                        self.full_dataset,
+                        test=0.0,
+                        validation=validation,
+                        random_seed=self.config["dataset"]["seed"],
+                    )
 
                 self.prepare_tf = True
-                return (self.train_dataset.feature_names, self.train_dataset.feature_size)
+                return (
+                    self.train_dataset.feature_names,
+                    self.train_dataset.feature_size,
+                )
 
             if stage == "test" or stage == "predict":
-                assert self.config["dataset"]["test_dataset_loc"] is not None, \
-                    "test_dataset_loc is None"
+                assert (
+                    self.config["dataset"]["test_dataset_loc"] is not None
+                ), "test_dataset_loc is None"
                 self.test_dataset = HeteroGraphNodeLabelDataset(
-                    file=self.config["dataset"]["test_dataset_loc"],
+                    file=self.test_dataset_loc,
                     allowed_ring_size=self.config["dataset"]["allowed_ring_size"],
                     allowed_charges=self.config["dataset"]["allowed_charges"],
                     allowed_spins=self.config["dataset"]["allowed_spins"],
@@ -262,19 +322,33 @@ class QTAIMNodeTaskDataModule(pl.LightningDataModule):
                     debug=self.config["dataset"]["debug"],
                     log_scale_features=self.config["dataset"]["log_scale_features"],
                     log_scale_targets=self.config["dataset"]["log_scale_targets"],
-                    standard_scale_features=self.config["dataset"]["standard_scale_features"],
-                    standard_scale_targets=self.config["dataset"]["standard_scale_targets"],
+                    standard_scale_features=self.config["dataset"][
+                        "standard_scale_features"
+                    ],
+                    standard_scale_targets=self.config["dataset"][
+                        "standard_scale_targets"
+                    ],
                     verbose=self.config["dataset"]["verbose"],
                     bond_key=self.config["dataset"]["bond_key"],
                     map_key=self.config["dataset"]["map_key"],
                 )
                 self.prepare_tf = True
-                return (self.test_dataset.feature_names, self.test_dataset.feature_size)
+                return (
+                    self.test_dataset.feature_names,
+                    self.test_dataset.feature_size,
+                )
+
         else:
             if stage == "fit" or stage is None:
-                return (self.train_dataset.feature_names, self.train_dataset.feature_size)
+                return (
+                    self.train_dataset.feature_names,
+                    self.train_dataset.feature_size,
+                )
             else:
-                return (self.test_dataset.feature_names, self.test_dataset.feature_size)
+                return (
+                    self.test_dataset.feature_names,
+                    self.test_dataset.feature_size,
+                )
 
     def train_dataloader(self):
         return DataLoaderMoleculeNodeTask(
@@ -299,10 +373,13 @@ class QTAIMNodeTaskDataModule(pl.LightningDataModule):
 
 
 class QTAIMGraphTaskDataModule(pl.LightningDataModule):
-    def __init__(self, config=None):
+    def __init__(
+        self,
+        config: dict = None,
+    ):
         super().__init__()
         self.prepare_tf = False
-        if config is None:
+        if config == None:
             print("no config passed - using default on data module")
             self.config = get_default_graph_level_config()
         else:
@@ -317,7 +394,9 @@ class QTAIMGraphTaskDataModule(pl.LightningDataModule):
         else:
             if self.config["dataset"]["edge_dropout"] > 0.0:
                 print("... > using edge dropout on datamodule")
-                self.transforms = DropBondHeterograph(p=config["dataset"]["edge_dropout"])
+                self.transforms = DropBondHeterograph(
+                    p=config["dataset"]["edge_dropout"]
+                )
             else:
                 self.transforms = None
 
@@ -325,14 +404,14 @@ class QTAIMGraphTaskDataModule(pl.LightningDataModule):
         if stage in (None, "fit", "validate"):
             self.train_ds = self.train_dataset
             self.val_ds = self.val_dataset
+
         if stage in ("test", "predict"):
             self.test_ds = self.test_dataset
 
     def prepare_data(self, stage=None):
         if self.prepare_tf == False:
             if stage == "fit" or stage is None:
-
-                # load train dataset — fits scalers here
+                # Assign train/val datasets for use in dataloaders
                 self.full_dataset = HeteroGraphGraphLabelDataset(
                     file=self.config["dataset"]["train_dataset_loc"],
                     allowed_ring_size=self.config["dataset"]["allowed_ring_size"],
@@ -348,87 +427,57 @@ class QTAIMGraphTaskDataModule(pl.LightningDataModule):
                     log_scale_targets=self.config["dataset"]["log_scale_targets"],
                     bond_key=self.config["dataset"]["bond_key"],
                     map_key=self.config["dataset"]["map_key"],
-                    standard_scale_features=self.config["dataset"]["standard_scale_features"],
-                    standard_scale_targets=self.config["dataset"]["standard_scale_targets"],
+                    standard_scale_features=self.config["dataset"][
+                        "standard_scale_features"
+                    ],
+                    standard_scale_targets=self.config["dataset"][
+                        "standard_scale_targets"
+                    ],
                     verbose=self.config["dataset"]["verbose"],
-                    fit_scalers=True,
                 )
 
-                val_loc = self.config["dataset"].get("val_dataset_loc", None)
+                validation = self.config["dataset"]["val_prop"]
+                test_size = self.config["dataset"]["test_prop"]
 
-                if val_loc is not None:
-                    # use explicit val file — apply train scalers, do not refit
-                    print("... > loading separate val dataset from:", val_loc)
-                    self.train_dataset = self.full_dataset
-                    self.val_dataset = HeteroGraphGraphLabelDataset(
-                        file=val_loc,
-                        allowed_ring_size=self.config["dataset"]["allowed_ring_size"],
-                        allowed_charges=self.config["dataset"]["allowed_charges"],
-                        allowed_spins=self.config["dataset"]["allowed_spins"],
-                        self_loop=self.config["dataset"]["self_loop"],
-                        extra_keys=self.config["dataset"]["extra_keys"],
-                        element_set=self.config["dataset"]["element_set"],
-                        target_list=self.config["dataset"]["target_list"],
-                        extra_dataset_info=self.config["dataset"]["extra_dataset_info"],
-                        debug=self.config["dataset"]["debug"],
-                        log_scale_features=self.config["dataset"]["log_scale_features"],
-                        log_scale_targets=self.config["dataset"]["log_scale_targets"],
-                        bond_key=self.config["dataset"]["bond_key"],
-                        map_key=self.config["dataset"]["map_key"],
-                        standard_scale_features=self.config["dataset"]["standard_scale_features"],
-                        standard_scale_targets=self.config["dataset"]["standard_scale_targets"],
-                        verbose=self.config["dataset"]["verbose"],
-                        fit_scalers=False,
-                        feature_scalers=self.full_dataset.feature_scalers,
-                        label_scalers=self.full_dataset.label_scalers,
+                if test_size > 0.0:
+                    (
+                        self.train_dataset,
+                        self.val_dataset,
+                        self.test_dataset,
+                    ) = train_validation_test_split(
+                        self.full_dataset,
+                        test=test_size,
+                        validation=validation,
+                        random_seed=self.config["dataset"]["seed"],
+                    )
+                    print("training set size: ", len(self.train_dataset))
+                    print("validation set size: ", len(self.val_dataset))
+                    print("test set size: ", len(self.test_dataset))
+
+                else:
+                    print("... > no test set in datamodule")
+                    (
+                        self.train_dataset,
+                        self.val_dataset,
+                    ) = train_validation_test_split(
+                        self.full_dataset,
+                        test=0.0,
+                        validation=validation,
+                        random_seed=self.config["dataset"]["seed"],
                     )
                     print("training set size: ", len(self.train_dataset))
                     print("validation set size: ", len(self.val_dataset))
 
-                else:
-                    # fall back to val_prop random split
-                    validation = self.config["dataset"]["val_prop"]
-                    test_size = self.config["dataset"]["test_prop"]
-
-                    if test_size > 0.0:
-                        (self.train_dataset, self.val_dataset, self.test_dataset) = \
-                            train_validation_test_split(
-                                self.full_dataset,
-                                test=test_size,
-                                validation=validation,
-                                random_seed=self.config["dataset"]["seed"],
-                            )
-                        print("training set size: ", len(self.train_dataset))
-                        print("validation set size: ", len(self.val_dataset))
-                        print("test set size: ", len(self.test_dataset))
-                    else:
-                        print("... > no test set in datamodule")
-                        (self.train_dataset, self.val_dataset) = \
-                            train_validation_test_split(
-                                self.full_dataset,
-                                test=0.0,
-                                validation=validation,
-                                random_seed=self.config["dataset"]["seed"],
-                            )
-                        print("training set size: ", len(self.train_dataset))
-                        print("validation set size: ", len(self.val_dataset))
-
                 self.prepare_tf = True
-                return (self.train_dataset.feature_names, self.train_dataset.feature_size)
+                return (
+                    self.train_dataset.feature_names,
+                    self.train_dataset.feature_size,
+                )
 
             if stage == "test" or stage == "predict":
-                assert self.config["dataset"]["test_dataset_loc"] is not None, \
-                    "test_dataset_loc is None"
-
-                # apply train scalers to test set — do not refit
-                test_feature_scalers = None
-                test_label_scalers = None
-                fit_test = True
-
-                if hasattr(self, "full_dataset"):
-                    test_feature_scalers = self.full_dataset.feature_scalers
-                    test_label_scalers = self.full_dataset.label_scalers
-                    fit_test = False
+                assert (
+                    self.config["dataset"]["test_dataset_loc"] is not None
+                ), "test_dataset_loc is None"
 
                 self.test_dataset = HeteroGraphGraphLabelDataset(
                     file=self.config["dataset"]["test_dataset_loc"],
@@ -443,28 +492,43 @@ class QTAIMGraphTaskDataModule(pl.LightningDataModule):
                     debug=self.config["dataset"]["debug"],
                     log_scale_features=self.config["dataset"]["log_scale_features"],
                     log_scale_targets=self.config["dataset"]["log_scale_targets"],
-                    standard_scale_features=self.config["dataset"]["standard_scale_features"],
-                    standard_scale_targets=self.config["dataset"]["standard_scale_targets"],
+                    standard_scale_features=self.config["dataset"][
+                        "standard_scale_features"
+                    ],
+                    standard_scale_targets=self.config["dataset"][
+                        "standard_scale_targets"
+                    ],
                     bond_key=self.config["dataset"]["bond_key"],
                     map_key=self.config["dataset"]["map_key"],
                     verbose=self.config["dataset"]["verbose"],
-                    fit_scalers=fit_test,
-                    feature_scalers=test_feature_scalers,
-                    label_scalers=test_label_scalers,
                 )
 
                 print("test set size: ", len(self.test_dataset))
-                self.prepare_tf = True
-                return (self.test_dataset.feature_names, self.test_dataset.feature_size)
+                self.test_dataset.feature_size
+                self.test_dataset.feature_names
 
+                self.prepare_tf = True
+                return (
+                    self.test_dataset.feature_names,
+                    self.test_dataset.feature_size,
+                )
+
+        
         else:
+            # prepare_tf == True, so datasets already exist (maybe only test_dataset)
             if stage in ("test", "predict"):
                 return (self.test_dataset.feature_names, self.test_dataset.feature_size)
+
+            # stage is None or fit/validate
             if hasattr(self, "train_dataset"):
                 return (self.train_dataset.feature_names, self.train_dataset.feature_size)
+
+            # fallback for test-only datamodule called with stage=None
             if hasattr(self, "test_dataset"):
                 return (self.test_dataset.feature_names, self.test_dataset.feature_size)
+
             raise RuntimeError("No dataset has been prepared yet.")
+            
 
     def train_dataloader(self):
         return DataLoaderMoleculeGraphTask(
@@ -478,7 +542,7 @@ class QTAIMGraphTaskDataModule(pl.LightningDataModule):
     def val_dataloader(self):
         return DataLoaderMoleculeGraphTask(
             dataset=self.val_dataset,
-            batch_size=self.config["dataset"].get("val_batch_size", len(self.val_dataset)),
+            batch_size=self.config["dataset"].get("val_batch_size", len(self.val_dataset)), #batch_size=len(self.val_dataset),
             shuffle=False,
             num_workers=self.config["dataset"]["num_workers"],
             transforms=self.transforms,
@@ -487,7 +551,7 @@ class QTAIMGraphTaskDataModule(pl.LightningDataModule):
     def test_dataloader(self):
         return DataLoaderMoleculeGraphTask(
             dataset=self.test_dataset,
-            batch_size=self.config["dataset"].get("test_batch_size", len(self.test_dataset)),
+            batch_size=self.config["dataset"].get("test_batch_size", len(self.test_dataset)), #batch_size=len(self.test_dataset),
             shuffle=False,
             num_workers=self.config["dataset"]["num_workers"],
             transforms=self.transforms,
@@ -495,14 +559,18 @@ class QTAIMGraphTaskDataModule(pl.LightningDataModule):
 
 
 class QTAIMGraphTaskClassifyDataModule(pl.LightningDataModule):
-    def __init__(self, config=None):
+    def __init__(
+        self,
+        config: dict = None,
+    ):
         super().__init__()
         self.prepare_tf = False
-        if config is None:
+        if config == None:
             print("no config passed - using default on data module")
             self.config = get_default_graph_level_config()
         else:
             self.config = config
+        # print(type(self.config["dataset"]["edge_dropout"]))
 
         if "edge_dropout" not in self.config["dataset"].keys():
             print("... > no edge dropout on datamodule")
@@ -513,7 +581,9 @@ class QTAIMGraphTaskClassifyDataModule(pl.LightningDataModule):
         else:
             if self.config["dataset"]["edge_dropout"] > 0.0:
                 print("... > using edge dropout on datamodule")
-                self.transforms = DropBondHeterograph(dropout=config["dataset"]["edge_dropout"])
+                self.transforms = DropBondHeterograph(
+                    dropout=config["dataset"]["edge_dropout"]
+                )
             else:
                 self.transforms = None
 
@@ -521,12 +591,14 @@ class QTAIMGraphTaskClassifyDataModule(pl.LightningDataModule):
         if stage in (None, "fit", "validate"):
             self.train_ds = self.train_dataset
             self.val_ds = self.val_dataset
+
         if stage in ("test", "predict"):
             self.test_ds = self.test_dataset
 
     def prepare_data(self, stage=None):
         if self.prepare_tf == False:
             if stage == "fit" or stage is None:
+                # Assign train/val datasets for use in dataloaders
                 self.full_dataset = HeteroGraphGraphLabelClassifierDataset(
                     file=self.config["dataset"]["train_dataset_loc"],
                     allowed_ring_size=self.config["dataset"]["allowed_ring_size"],
@@ -538,46 +610,61 @@ class QTAIMGraphTaskClassifyDataModule(pl.LightningDataModule):
                     extra_dataset_info=self.config["dataset"]["extra_dataset_info"],
                     debug=self.config["dataset"]["debug"],
                     log_scale_features=self.config["dataset"]["log_scale_features"],
-                    standard_scale_features=self.config["dataset"]["standard_scale_features"],
+                    standard_scale_features=self.config["dataset"][
+                        "standard_scale_features"
+                    ],
                     impute=self.config["dataset"]["impute"],
                     bond_key=self.config["dataset"]["bond_key"],
                     map_key=self.config["dataset"]["map_key"],
                     verbose=self.config["dataset"]["verbose"],
                 )
+
                 validation = self.config["dataset"]["val_prop"]
                 test_size = self.config["dataset"]["test_prop"]
 
                 if test_size > 0.0:
-                    (self.train_dataset, self.val_dataset, self.test_dataset) = \
-                        train_validation_test_split(
-                            self.full_dataset,
-                            test=test_size,
-                            validation=validation,
-                            random_seed=self.config["dataset"]["seed"],
-                        )
+                    (
+                        self.train_dataset,
+                        self.val_dataset,
+                        self.test_dataset,
+                    ) = train_validation_test_split(
+                        self.full_dataset,
+                        test=test_size,
+                        validation=validation,
+                        random_seed=self.config["dataset"]["seed"],
+                    )
                     print("training set size: ", len(self.train_dataset))
                     print("validation set size: ", len(self.val_dataset))
                     print("test set size: ", len(self.test_dataset))
+
                 else:
                     print("... > no test set in datamodule")
-                    (self.train_dataset, self.val_dataset) = \
-                        train_validation_test_split(
-                            self.full_dataset,
-                            test=0.0,
-                            validation=validation,
-                            random_seed=self.config["dataset"]["seed"],
-                        )
+                    (
+                        self.train_dataset,
+                        self.val_dataset,
+                    ) = train_validation_test_split(
+                        self.full_dataset,
+                        test=0.0,
+                        validation=validation,
+                        random_seed=self.config["dataset"]["seed"],
+                    )
                     print("training set size: ", len(self.train_dataset))
                     print("validation set size: ", len(self.val_dataset))
 
                 self.prepare_tf = True
-                return (self.train_dataset.feature_names, self.train_dataset.feature_size)
+
+                return (
+                    self.train_dataset.feature_names,
+                    self.train_dataset.feature_size,
+                )
 
             if stage == "test" or stage == "predict":
-                assert self.config["dataset"]["test_dataset_loc"] is not None, \
-                    "test_dataset_loc is None"
+                assert (
+                    self.config["dataset"]["test_dataset_loc"] is not None
+                ), "test_dataset_loc is None"
+
                 self.test_dataset = HeteroGraphGraphLabelDataset(
-                    file=self.config["dataset"]["test_dataset_loc"],
+                    file=self.test_dataset_loc,
                     allowed_ring_size=self.config["dataset"]["allowed_ring_size"],
                     allowed_charges=self.config["dataset"]["allowed_charges"],
                     self_loop=self.config["dataset"]["self_loop"],
@@ -587,19 +674,32 @@ class QTAIMGraphTaskClassifyDataModule(pl.LightningDataModule):
                     extra_dataset_info=self.config["dataset"]["extra_dataset_info"],
                     debug=self.config["dataset"]["debug"],
                     log_scale_features=self.config["dataset"]["log_scale_features"],
-                    standard_scale_features=self.config["dataset"]["standard_scale_features"],
+                    standard_scale_features=self.config["dataset"][
+                        "standard_scale_features"
+                    ],
                     bond_key=self.config["dataset"]["bond_key"],
                     map_key=self.config["dataset"]["map_key"],
                     verbose=self.config["dataset"]["verbose"],
                 )
                 print("test set size: ", len(self.test_dataset))
+
                 self.prepare_tf = True
-                return (self.test_dataset.feature_names, self.test_dataset.feature_size)
+                return (
+                    self.test_dataset.feature_names,
+                    self.test_dataset.feature_size,
+                )
+
         else:
             if stage == "fit" or stage is None:
-                return (self.train_dataset.feature_names, self.train_dataset.feature_size)
+                return (
+                    self.train_dataset.feature_names,
+                    self.train_dataset.feature_size,
+                )
             else:
-                return (self.test_dataset.feature_names, self.test_dataset.feature_size)
+                return (
+                    self.test_dataset.feature_names,
+                    self.test_dataset.feature_size,
+                )
 
     def train_dataloader(self):
         return DataLoaderMoleculeGraphTask(
@@ -632,11 +732,13 @@ class QTAIMGraphTaskClassifyDataModule(pl.LightningDataModule):
 class LMDBDataModule(pl.LightningDataModule):
     def __init__(self, config):
         super().__init__()
+
         self.config = config
         self.train_lmdb_loc = config["dataset"]["train_lmdb"]
 
         if "val_lmdb" in self.config["dataset"]:
             self.val_lmdb_loc = config["dataset"]["val_lmdb"]
+
         if "test_lmdb" in self.config["dataset"]:
             self.test_lmdb_loc = config["dataset"]["test_lmdb"]
 
@@ -651,27 +753,43 @@ class LMDBDataModule(pl.LightningDataModule):
         else:
             if self.config["dataset"]["edge_dropout"] > 0.0:
                 print("... > using edge dropout on datamodule")
-                self.transforms = DropBondHeterograph(p=config["dataset"]["edge_dropout"])
+                self.transforms = DropBondHeterograph(
+                    p=config["dataset"]["edge_dropout"]
+                )
             else:
                 self.transforms = None
 
     def prepare_data(self, stage=None):
+
         if "test_lmdb" in self.config["dataset"]:
+            # check if there is a single lmdb, if so use it, else leave the folder
             check_file = os.path.join(self.test_lmdb_loc, "molecule.lmdb")
             if not os.path.exists(check_file):
                 check_file = self.test_lmdb_loc
-            self.test_dataset = LMDBMoleculeDataset(config={"src": check_file}, transform=TransformMol)
+
+            self.test_dataset = LMDBMoleculeDataset(
+                config={"src": check_file},
+                transform=TransformMol,
+            )
 
         if "val_lmdb" in self.config["dataset"]:
             check_file = os.path.join(self.val_lmdb_loc, "molecule.lmdb")
             if not os.path.exists(check_file):
                 check_file = self.val_lmdb_loc
-            self.val_dataset = LMDBMoleculeDataset(config={"src": check_file}, transform=TransformMol)
+
+            self.val_dataset = LMDBMoleculeDataset(
+                config={"src": check_file},
+                transform=TransformMol,
+            )
 
         check_file = os.path.join(self.train_lmdb_loc, "molecule.lmdb")
         if not os.path.exists(check_file):
             check_file = self.train_lmdb_loc
-        self.train_dataset = LMDBMoleculeDataset(config={"src": check_file}, transform=TransformMol)
+
+        self.train_dataset = LMDBMoleculeDataset(
+            config={"src": check_file},
+            transform=TransformMol,
+        )
 
         return self.train_dataset.feature_names, self.train_dataset.feature_size
 
@@ -679,6 +797,7 @@ class LMDBDataModule(pl.LightningDataModule):
         if stage in (None, "fit", "validate"):
             self.train_ds = self.train_dataset
             self.val_ds = self.val_dataset
+
         if stage in ("test", "predict"):
             self.test_ds = self.test_dataset
 
@@ -712,11 +831,13 @@ class LMDBDataModule(pl.LightningDataModule):
 class LMDBLinkDataModule(pl.LightningDataModule):
     def __init__(self, config):
         super().__init__()
+
         self.config = config
         self.train_lmdb_loc = config["dataset"]["train_lmdb"]
 
         if "val_lmdb" in self.config["dataset"]:
             self.val_lmdb_loc = config["dataset"]["val_lmdb"]
+
         if "test_lmdb" in self.config["dataset"]:
             self.test_lmdb_loc = config["dataset"]["test_lmdb"]
 
@@ -731,27 +852,42 @@ class LMDBLinkDataModule(pl.LightningDataModule):
         else:
             if self.config["dataset"]["edge_dropout"] > 0.0:
                 print("... > using edge dropout on datamodule")
-                self.transforms = DropBondHeterograph(p=config["dataset"]["edge_dropout"])
+                self.transforms = DropBondHeterograph(
+                    p=config["dataset"]["edge_dropout"]
+                )
             else:
                 self.transforms = None
 
     def prepare_data(self, stage=None):
         if "test_lmdb" in self.config["dataset"]:
+            # check if there is a single lmdb, if so use it, else leave the folder
             check_file = os.path.join(self.test_lmdb_loc, "molecule.lmdb")
             if not os.path.exists(check_file):
                 check_file = self.test_lmdb_loc
-            self.test_dataset = LMDBMoleculeDataset(config={"src": check_file}, transform=TransformMol)
+
+            self.test_dataset = LMDBMoleculeDataset(
+                config={"src": check_file},
+                transform=TransformMol,
+            )
 
         if "val_lmdb" in self.config["dataset"]:
             check_file = os.path.join(self.val_lmdb_loc, "molecule.lmdb")
             if not os.path.exists(check_file):
                 check_file = self.val_lmdb_loc
-            self.val_dataset = LMDBMoleculeDataset(config={"src": check_file}, transform=TransformMol)
+
+            self.val_dataset = LMDBMoleculeDataset(
+                config={"src": check_file},
+                transform=TransformMol,
+            )
 
         check_file = os.path.join(self.train_lmdb_loc, "molecule.lmdb")
         if not os.path.exists(check_file):
             check_file = self.train_lmdb_loc
-        self.train_dataset = LMDBMoleculeDataset(config={"src": check_file}, transform=TransformMol)
+
+        self.train_dataset = LMDBMoleculeDataset(
+            config={"src": check_file},
+            transform=TransformMol,
+        )
 
         return self.train_dataset.feature_names, self.train_dataset.feature_size
 
@@ -759,6 +895,7 @@ class LMDBLinkDataModule(pl.LightningDataModule):
         if stage in (None, "fit", "validate"):
             self.train_ds = self.train_dataset
             self.val_ds = self.val_dataset
+
             self.train_dl = DataLoaderLinkLMDB(
                 dataset=self.train_ds,
                 batch_size=self.config["optim"]["train_batch_size"],
@@ -767,12 +904,14 @@ class LMDBLinkDataModule(pl.LightningDataModule):
                 pin_memory=self.config["optim"]["pin_memory"],
                 persistent_workers=self.config["optim"]["persistent_workers"],
             )
+
             self.val_dl = DataLoaderLinkLMDB(
                 dataset=self.val_ds,
                 batch_size=len(self.val_ds),
                 shuffle=False,
                 num_workers=self.config["optim"]["num_workers"],
             )
+
             _, _, ft = next(iter(self.train_dl))
             self.node_len = ft.shape[1]
 
@@ -783,6 +922,7 @@ class LMDBLinkDataModule(pl.LightningDataModule):
                 shuffle=False,
                 num_workers=self.config["optim"]["num_workers"],
             )
+
             _, _, ft = next(iter(self.test_dl))
             self.node_len = ft.shape[1]
 

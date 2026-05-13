@@ -12,13 +12,13 @@
     "num_workers": 0,
     "pin_memory": false,
     "persistent_workers": false,
-    "check_val_every_n_epoch": 10,
+    "check_val_every_n_epoch": 2,
     "num_sanity_val_steps": 0,
-    "log_every_n_steps": 500
+    "log_every_n_steps": 20
   },
   "dataset": {
-    "train_dataset_loc": "/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/data_suba/train_qm9_qtaim_1205_labelled_corrected_my43k.pkl",
-    "test_dataset_loc":  "/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/data_suba/test_qm9_qtaim_1205_labelled_corrected_my43k.pkl",
+    "train_dataset_loc": "/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/data_suba/filtered_qtaim_fullqm9/train_43k.pkl",
+    "test_dataset_loc":  "/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/data_suba/filtered_qtaim_fullqm9/test_43k.pkl",
 
     "log_save_dir": "/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/logs_suba/nonlmdb_43k/",
 
@@ -119,7 +119,7 @@
     "fc_hidden_size_1": 1024,
     "fc_num_layers": 2,
     "restore": false,
-    "max_epochs": 600,
+    "max_epochs": 5,
     "extra_stop_patience": 50
   }
 }

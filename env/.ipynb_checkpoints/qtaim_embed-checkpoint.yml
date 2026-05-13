@@ -1,13 +1,13 @@
-name: /lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_proj/env/qtaim_embed
+name: qtaim_embed
 channels:
+  - pytorch
+  - nvidia
   - conda-forge
 dependencies:
   - python=3.10
-  - pytorch-cuda=12.1
   - pytorch=2.4
-  - packaging
-  - setuptools
-  - dgl
+  - pytorch-cuda=12.4
+  - pip
   - pandas
   - numpy
   - pytorch-lightning=2.4
@@ -15,11 +15,11 @@ dependencies:
   - scikit-learn
   - tqdm
   - rdkit
-  - monty[version='>=2023.5']
-  - networkx[version='>=3']
-  - pymatgen[version='>=2024.0']
+  - monty>=2023.5
+  - networkx>=3
+  - pymatgen>=2024.0
   - ruamel.yaml
-  - spglib[version='>=2.0']
+  - spglib>=2.0
   - wandb
   - e3nn
   - einops
@@ -27,4 +27,6 @@ dependencies:
   - python-lmdb
   - tensorboard
   - tensorboardx
-prefix: /lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_proj/env/qtaim_embed
+prefix: /lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/env/qtaim_embed
+
+

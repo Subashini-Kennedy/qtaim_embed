@@ -1,4 +1,3 @@
-name: qtaim_embed
 channels:
   - pytorch
   - nvidia
@@ -27,6 +26,5 @@ dependencies:
   - python-lmdb
   - tensorboard
   - tensorboardx
-prefix: /lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/env/qtaim_embed
 
 

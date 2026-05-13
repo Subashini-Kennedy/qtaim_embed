@@ -1,0 +1,75 @@
+Environment location
+
+    /lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/env/qtaim_embed
+
+YAML files
+
+    /lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/env/qtaim_embed.yml
+    /lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/env/qtaim_embed_prefix.yml
+
+To activate the environment on a login/CPU node
+
+    module purge
+    module load miniforge/24.11.3
+    source "$(conda info --base)/etc/profile.d/conda.sh"
+    conda activate /lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/env/qtaim_embed
+
+To check that the environment is active
+
+    python -c "import sys; print(sys.executable)"
+    python -c "import torch; print('Torch:', torch.__version__, 'CUDA available:', torch.cuda.is_available())"
+
+*python path should be : /lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/env/qtaim_embed/bin/python
+
+To check the CUDA, login to the GPU node:
+
+    srun -A ihj@h100 -p gpu_p6 -C h100 --gres=gpu:1 -c 8 -t 01:00:00 --pty bash 
+
+    Then, activate the env in GPU shell and check PyTorch:
+        python -c "import torch; print('Torch:', torch.__version__, 'CUDA available:', torch.cuda.is_available())"
+
+To install and register the Jupyter Kernel
+
+    Actiavte the environment
+    Install ipykernel:
+
+        python -m pip install -U pip
+        python -m pip install ipykernel
+        python -c "import ipykernel; print(ipykernel.__version__)"
+
+    Register the kernel
+
+        python -m ipykernel install --user --name qtaim_embed --display-name "Python (qtaim_embed)"
+
+    Check: jupyter kernelspec list
+
+To use the Jupyter kernel
+Restart JupyterHub
+Open your notebook
+Select the kernel:
+Python (qtaim_embed)
+
+
+
+(/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/env/qtaim_embed) [urb54jd@jean-zay4: env]$ jupyter kernelspec list
+Available kernels:
+  python3           /lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/env/qtaim_embed/share/jupyter/kernels/python3
+  qtaim             /lustre/fshomisc/home/rech/genzcx01/urb54jd/.local/share/jupyter/kernels/qtaim
+  qtaim_embed       /lustre/fshomisc/home/rech/genzcx01/urb54jd/.local/share/jupyter/kernels/qtaim_embed
+  qtaim_embed_jz    /lustre/fshomisc/home/rech/genzcx01/urb54jd/.local/share/jupyter/kernels/qtaim_embed_jz
+(/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/env/qtaim_embed) [urb54jd@jean-zay4: env]$ cat ~/.local/share/jupyter/kernels/qtaim_embed/kernel.json
+{
+ "argv": [
+  "/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/env/qtaim_embed/bin/python",
+  "-m",
+  "ipykernel_launcher",
+  "-f",
+  "{connection_file}"
+ ],
+ "display_name": "Python (qtaim_embed)",
+ "language": "python",
+ "metadata": {
+  "debugger": true
+ },
+ "kernel_protocol_version": "5.5"
+}

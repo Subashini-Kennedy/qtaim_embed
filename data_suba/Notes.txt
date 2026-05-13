@@ -1,0 +1,79 @@
+Got the raw data from figshare: https://figshare.com/projects/qtaim-generator/196192
+    
+    train_qm9_qtaim_1205_labelled_corrected.pkl 
+    
+    test_qm9_qtaim_1205_labelled_corrected.pkl 
+
+Ran /lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/preprocess_43K_suba/filter_qm9_43k_train_test_val.py
+
+    Created the csv and pkl files in /lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/data_suba/filtered_qtaim_fullqm9/
+
+            test_43k.csv  
+            test_43k.pkl  
+            train_43k.csv  
+            train_43k.pkl  
+            val_43k.csv  
+            val_43k.pkl
+
+All the descriptors can be seen also in the csv files
+
+-------------------------------------------------------------------------------------------------------------------------------------------------
+Old procedure notes:
+
+Got the raw data from figshare: https://figshare.com/projects/qtaim-generator/196192
+    
+    train_qm9_qtaim_1205_labelled_corrected.pkl 
+    
+    test_qm9_qtaim_1205_labelled_corrected.pkl 
+
+Chose the correct identifier 
+
+    Discovered the molecule key lives in the names column (values like gdb_<idx>.xyz), not in ids. 
+
+Prepared the whitelist (43k) 
+
+    List lines were gdb_<idx>; we normalized to match the pickle’s names (gdb_<idx>.xyz) --> my_43K.txt
+
+Filtered both splits down to your 43k 
+
+    Ran scripts/filter_qtaim_qm9_to_43k.py with --id-field names. 
+
+Outputs written: 
+
+    train_qm9_qtaim_1205_labelled_corrected_my43K.pkl (≈39,121 rows) 
+
+    test_qm9_qtaim_1205_labelled_corrected_my43K.pkl (≈4,355 rows) 
+
+plus the corresponding CSVs. 
+
+Checked coverage vs whitelist 
+
+Created a quick missing list (scripts/missing_in_figshare.txt) to see which whitelist IDs weren’t present in the Figshare pickles. 
+
+Built a trainer-friendly CSV (IDs + targets) 
+
+The repo’s trainer expects mol_id or Tag,GDB_Index or D. 
+
+We derived Tag='gdb' and numeric GDB_Index from names, kept target columns, and mapped u0 → U0. 
+
+Output: scripts/my43k_trainer.csv (Tag, GDB_Index, homo, lumo, gap, …). 
+
+(Optional) Linked loose .xyz names (two schemes) 
+
+If you use loose geometries, different sources name files gdb_<idx>.xyz or dsgdb9nsd_<idx:06d>.xyz. 
+
+scripts/link_qm9_xyz_names.py created cross-links so both names resolve. 
+
+Coverage achieved with curated set: 38,258 / 39,121 (97.79%). 
+
+Filtered trainer CSV to only rows with an existing .xyz 
+
+scripts/prepare_present_trainer_csv.py → scripts/my43k_trainer_present.csv 
+
+Avoids runtime failures on missing geometries. 
+
+(Important realization) Trainer uses PyG’s QM9, not loose .xyz 
+
+tools/train_qm9_subset.py instantiates torch_geometric.datasets.QM9, which reads data_root/raw/gdb9.sdf + gdb9.sdf.csv and builds a processed/ cache. 
+
+Loose .xyz files are ignored by PyG; the first run downloads/processes once. 

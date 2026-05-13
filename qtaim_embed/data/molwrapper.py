@@ -64,7 +64,8 @@ def mol_wrappers_from_df(
                 bond_key=bond_key,
                 keys=bond_keys,
             )
-
+    #this get_bond_fetaures builds a dictionary keyed by bond tuple : feature dict
+    
         mol_graph = row.molecule_graph
         # print(mol_graph)
         pmg_mol = row.molecule

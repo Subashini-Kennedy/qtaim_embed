@@ -600,6 +600,8 @@ class GCNGraphPred(pl.LightningModule):
         if type(mse) == list:
             mse = torch.stack(mse)
 
+        if self.trainer.current_epoch < 2:
+            self.log("val_mae", 10**10, prog_bar=False)
         self.log("train_r2", r2.median(), prog_bar=False, sync_dist=True)
         self.log("train_mae", mae.mean(), prog_bar=False, sync_dist=True)
         self.log("train_mse", mse.mean(), prog_bar=True, sync_dist=True)

@@ -149,17 +149,17 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
     parser = argparse.ArgumentParser(description="Filter QM9-QTAIM train/test pickles to your whitelist of molecule IDs.")
     parser.add_argument(
         "--train-pkl",
-        default="/home/suba/Documents/GitHub/qtaim_embed_private/data_suba/train_qm9_qtaim_1205_labelled_corrected.pkl",
+        default="/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/data_suba/train_qm9_qtaim_1205_labelled_corrected.pkl",
         help="Path to train .pkl file",
     )
     parser.add_argument(
         "--test-pkl",
-        default="/home/suba/Documents/GitHub/qtaim_embed_private/data_suba/test_qm9_qtaim_1205_labelled_corrected.pkl",
+        default="/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/data_suba/test_qm9_qtaim_1205_labelled_corrected.pkl",
         help="Path to test .pkl file",
     )
     parser.add_argument(
         "--whitelist",
-        default=["/home/suba/Documents/GitHub/qtaim_embed_private/data_suba/my_43K.txt"],
+        default=["/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/data_suba/my_43K.txt"],
         nargs="+",
         help="One or more whitelist files",
     )

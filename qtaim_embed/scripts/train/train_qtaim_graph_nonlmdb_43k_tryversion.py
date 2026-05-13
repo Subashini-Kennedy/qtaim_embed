@@ -1,67 +1,116 @@
-import wandb, argparse, torch, json
+#!/usr/bin/env python
+# train_qtaim_graph_nonlmdb_43k_ddp_safe.py
+
+import argparse
+import json
 from copy import deepcopy
+
 import numpy as np
 import pandas as pd
+import torch
+import wandb
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
 from pytorch_lightning.callbacks import LearningRateMonitor, EarlyStopping, ModelCheckpoint
+
 from qtaim_embed.core.datamodule import QTAIMGraphTaskDataModule, LMDBDataModule
 from qtaim_embed.models.utils import LogParameters, load_graph_level_model_from_config
 from qtaim_embed.utils.data import get_default_graph_level_config
 
+# --- for DDP-safe external test loader (no dm_test datamodule) ---
+from qtaim_embed.core.dataset import HeteroGraphGraphLabelDataset
+from qtaim_embed.data.dataloader import DataLoaderMoleculeGraphTask
+
+
 torch.set_float32_matmul_precision("high")
 torch.multiprocessing.set_sharing_strategy("file_system")
 
-# why: Lightning wants int for plain 16/32
-def _normalize_precision(cfg):
-    p = cfg["optim"].get("precision")
-    if p in ("16","32"):
+
+def _normalize_precision(cfg: dict):
+    """Lightning wants int for plain 16/32, but supports strings like 'bf16-mixed'."""
+    p = cfg.get("optim", {}).get("precision")
+    if p in ("16", "32"):
         cfg["optim"]["precision"] = int(p)
 
-def _print_effective_io(cfg, use_lmdb, dataset_loc, dataset_test_loc):
+
+def _print_effective_io(cfg, use_lmdb, dataset_loc, dataset_test_loc, ext_test_path):
     ds = cfg.get("dataset", {})
     print("\n==== Effective IO ====")
     print("use_lmdb:", use_lmdb)
     if use_lmdb:
-        for k in ("train_lmdb","val_lmdb","test_lmdb"):
+        for k in ("train_lmdb", "val_lmdb", "test_lmdb"):
             print(f"{k}: {ds.get(k)}")
     else:
         print("train_dataset_loc   :", ds.get("train_dataset_loc") or dataset_loc)
-        print("external test (CLI) :", dataset_test_loc or ds.get("test_dataset_loc"))
+        print("external test path  :", ext_test_path)
         print("val_prop/test_prop  :", ds.get("val_prop"), ds.get("test_prop"))
     print("log_save_dir:", ds.get("log_save_dir"))
     print("======================\n")
 
-# compute per-task + macro average metrics
+
 def _regression_metrics(y_true: np.ndarray, y_pred: np.ndarray, task_names):
     eps = 1e-12
     err = y_pred - y_true
     mae = np.mean(np.abs(err), axis=0)
     mse = np.mean(err**2, axis=0)
     rmse = np.sqrt(mse)
-    # R^2 per task
+
     r2 = []
     for j in range(y_true.shape[1]):
-        sse = np.sum((err[:, j])**2)
+        sse = np.sum((err[:, j]) ** 2)
         yj = y_true[:, j]
-        sst = np.sum((yj - np.mean(yj))**2)
+        sst = np.sum((yj - np.mean(yj)) ** 2)
         r2.append(1.0 - sse / (sst + eps))
     r2 = np.array(r2)
-    # macro averages
+
     metrics_avg = {
         "mae_avg": float(np.mean(mae)),
         "mse_avg": float(np.mean(mse)),
         "rmse_avg": float(np.mean(rmse)),
         "r2_avg": float(np.mean(r2)),
     }
-    # per-task dict
+
     metrics_per = {}
     for name, m_mae, m_mse, m_rmse, m_r2 in zip(task_names, mae, mse, rmse, r2):
         metrics_per[f"mae_{name}"] = float(m_mae)
         metrics_per[f"mse_{name}"] = float(m_mse)
         metrics_per[f"rmse_{name}"] = float(m_rmse)
         metrics_per[f"r2_{name}"] = float(m_r2)
+
     return metrics_avg, metrics_per
+
+
+def build_external_test_dataloader(cfg: dict, ext_test_path: str):
+    """DDP-safe: every rank constructs its own Dataset+DataLoader (no Lightning prepare_data surprises)."""
+    test_ds = HeteroGraphGraphLabelDataset(
+        file=ext_test_path,
+        allowed_ring_size=cfg["dataset"]["allowed_ring_size"],
+        allowed_charges=cfg["dataset"]["allowed_charges"],
+        allowed_spins=cfg["dataset"]["allowed_spins"],
+        self_loop=cfg["dataset"]["self_loop"],
+        extra_keys=cfg["dataset"]["extra_keys"],
+        element_set=cfg["dataset"]["element_set"],
+        target_list=cfg["dataset"]["target_list"],
+        extra_dataset_info=cfg["dataset"]["extra_dataset_info"],
+        debug=cfg["dataset"]["debug"],
+        log_scale_features=cfg["dataset"]["log_scale_features"],
+        log_scale_targets=cfg["dataset"]["log_scale_targets"],
+        bond_key=cfg["dataset"]["bond_key"],
+        map_key=cfg["dataset"]["map_key"],
+        standard_scale_features=cfg["dataset"]["standard_scale_features"],
+        standard_scale_targets=cfg["dataset"]["standard_scale_targets"],
+        verbose=cfg["dataset"]["verbose"],
+    )
+
+    test_dl = DataLoaderMoleculeGraphTask(
+        dataset=test_ds,
+        batch_size=cfg["dataset"].get("test_batch_size", 256),
+        shuffle=False,
+        num_workers=cfg["dataset"]["num_workers"],
+        transforms=None,
+    )
+    return test_ds, test_dl
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -77,51 +126,44 @@ if __name__ == "__main__":
 
     debug = bool(args.debug)
     use_lmdb = bool(args.use_lmdb)
+
     project_name = args.project_name
     dataset_loc = args.dataset_loc
     dataset_test_loc = args.dataset_test_loc
     log_save_dir = args.log_save_dir
     wandb_entity = args.wandb_entity
-    cfg = args.config
 
-    if cfg is None:
+    if args.config is None:
         cfg = get_default_graph_level_config()
     else:
-        cfg = json.load(open(cfg, "r"))
+        cfg = json.load(open(args.config, "r"))
 
     # reproducible split for val
     pl.seed_everything(cfg.get("dataset", {}).get("seed", 42), workers=True)
 
+    # always write logs here
     cfg["dataset"]["log_save_dir"] = log_save_dir
     _normalize_precision(cfg)
+
+    # prefer external test path if provided
+    ext_test_path = dataset_test_loc or cfg["dataset"].get("test_dataset_loc")
 
     if use_lmdb:
         print("using lmdbs!")
         dm = LMDBDataModule(config=cfg)
         cfg["model"]["target_dict"]["global"] = cfg["dataset"]["target_list"]
-        dm_test = None
     else:
         if dataset_loc is not None:
             cfg["dataset"]["train_dataset_loc"] = dataset_loc
         if debug:
-            cfg["dataset"]["debug"] = debug
+            cfg["dataset"]["debug"] = True
+
         dm = QTAIMGraphTaskDataModule(config=cfg)
         cfg["model"]["target_dict"]["global"] = cfg["dataset"]["target_list"]
 
-        dm_test = None
-        # prefer external test datamodule when provided
-        ext_test_path = dataset_test_loc or cfg["dataset"].get("test_dataset_loc")
-        if ext_test_path:
-            test_config = deepcopy(cfg)
-            test_config["dataset"]["test_dataset_loc"] = ext_test_path
-            dm_test = QTAIMGraphTaskDataModule(config=test_config)
-            dm_test.prepare_data(stage="test")
-            #trainer.test(model, dataloaders=dm_test.test_dataloader())
+    _print_effective_io(cfg, use_lmdb, dataset_loc, dataset_test_loc, ext_test_path)
 
-
-
-    _print_effective_io(cfg, use_lmdb, dataset_loc, dataset_test_loc)
-
+    # FIT datamodule prep (this creates train/val split in your existing datamodule)
     feature_names, feature_size = dm.prepare_data(stage="fit")
     cfg["model"]["atom_feature_size"] = feature_size["atom"]
     cfg["model"]["bond_feature_size"] = feature_size["bond"]
@@ -149,6 +191,7 @@ if __name__ == "__main__":
             auto_insert_metric_name=True,
             save_last=True,
         )
+
         early_stopping_callback = EarlyStopping(
             monitor="val_loss",
             min_delta=0.00,
@@ -179,52 +222,57 @@ if __name__ == "__main__":
         run.config.update(cfg["dataset"])
         run.config.update(cfg["optim"])
 
+        # ---------------- FIT ----------------
         trainer.fit(model, dm)
 
-        # --- Test selection: prefer external test datamodule when present ---
+        # ---------------- TEST ----------------
+        # LMDB path: keep original behaviour
         if use_lmdb:
             if "test_lmdb" in cfg["dataset"]:
-                trainer.test(model, dm)
+                trainer.test(model, datamodule=dm)
+
+        # non-LMDB: DDP-safe external test using explicit DataLoader
         else:
-            if dm_test is not None:
-                trainer.test(model, datamodule=dm_test)  
+            if ext_test_path:
+                test_ds, test_dl = build_external_test_dataloader(cfg, ext_test_path)
+                trainer.test(model, dataloaders=test_dl)
+
+                # ---- Manual metrics on a single batch (NOTE: this is only one batch!) ----
+                # If your test set is larger than test_batch_size, this is NOT full-test metrics.
+                batch_graph, batch_labels = next(iter(test_dl))
+
+                scalers = dm.full_dataset.label_scalers
+                (
+                    r2_val,
+                    mae_val,
+                    mse_val,
+                    preds_unscaled,
+                    labels_unscaled,
+                ) = model.evaluate_manually(batch_graph, batch_labels, scalers, per_atom=False)
+
+                y_true = labels_unscaled.numpy()
+                y_pred = preds_unscaled.numpy()
+                task_names = cfg["model"]["target_dict"]["global"]
+
+                metrics_avg, metrics_per = _regression_metrics(y_true, y_pred, task_names)
+
+                print(">" * 40 + "test_results (external; one-batch manual)" + "<" * 40)
+                for k, v in {**metrics_avg, **metrics_per}.items():
+                    print(f"{k}: {v:.6f}")
+
+                wandb.run.summary.update({**metrics_avg, **metrics_per})
+
+                results = {
+                    "metrics_avg": metrics_avg,
+                    "metrics_per_task": metrics_per,
+                    "preds_unscaled": y_pred,
+                    "labels_unscaled": y_true,
+                    "task_names": task_names,
+                }
+                pd.to_pickle(results, cfg["dataset"]["log_save_dir"] + "test_results.pkl")
+
+            # If you want internal test split (test_prop>0) then keep the original:
             elif cfg["dataset"].get("test_prop", 0.0) > 0.0:
-                trainer.test(model, dm)
-
-        # --- Manual test metrics (per-task + average) on external test ---
-        if not use_lmdb and dm_test is not None:
-            # why: compute per-task metrics in unscaled space
-            batch_graph, batch_labels = next(iter(dm_test.test_dataloader()))
-            scalers = dm.full_dataset.label_scalers
-            (
-                r2_val,
-                mae_val,
-                mse_val,
-                preds_unscaled,
-                labels_unscaled,
-            ) = model.evaluate_manually(batch_graph, batch_labels, scalers, per_atom=False)
-
-            y_true = labels_unscaled.numpy()
-            y_pred = preds_unscaled.numpy()
-            task_names = cfg["model"]["target_dict"]["global"]
-
-            metrics_avg, metrics_per = _regression_metrics(y_true, y_pred, task_names)
-
-            print(">" * 40 + "test_results (external)" + "<" * 40)
-            for k, v in {**metrics_avg, **metrics_per}.items():
-                print(f"{k}: {v:.6f}")
-
-            # log to W&B summary
-            wandb.run.summary.update({**metrics_avg, **metrics_per})
-
-            # save full artifact
-            results = {
-                "metrics_avg": metrics_avg,
-                "metrics_per_task": metrics_per,
-                "preds_unscaled": y_pred,
-                "labels_unscaled": y_true,
-                "task_names": task_names,
-            }
-            pd.to_pickle(results, cfg["dataset"]["log_save_dir"] + "test_results.pkl")
+                trainer.test(model, datamodule=dm)
 
     wandb.finish()

@@ -1,0 +1,190 @@
+{
+  "optim": {
+    "precision": "bf16-mixed",
+    "num_devices": 1,
+    "num_nodes": 1,
+    "accumulate_grad_batches": 1,
+    "strategy": "auto",
+    "gradient_clip_val": 10.0,
+    "train_batch_size": 256,
+    "val_batch_size": 256,
+    "test_batch_size": 256,
+    "num_workers": 2,
+    "pin_memory": false,
+    "persistent_workers": false,
+    "check_val_every_n_epoch": 2,
+    "num_sanity_val_steps": 0,
+    "log_every_n_steps": 20
+  },
+  "dataset": {
+    "train_dataset_loc": "/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/data_suba/filtered_qtaim_fullqm9_corrected/train_43k.pkl",
+    "val_dataset_loc": "/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/data_suba/filtered_qtaim_fullqm9_corrected/val_43k.pkl",
+    "test_dataset_loc": "/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/data_suba/filtered_qtaim_fullqm9_corrected/test_43k.pkl",
+    "log_save_dir": "/lustre/fsn1/projects/rech/ihj/urb54jd/qtaim_embed_private/logs_suba/qtaim_43k/",
+    "verbose": false,
+    "debug": false,
+    "num_workers": 2,
+    "train_batch_size": 256,
+    "val_batch_size": 256,
+    "test_batch_size": 256,
+    "pin_memory": false,
+    "persistent_workers": false,
+    "allowed_ring_size": [
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "allowed_charges": null,
+    "allowed_spins": null,
+    "self_loop": true,
+    "bond_key": "new_bonds",
+    "map_key": "new_bond_indices",
+    "per_atom": false,
+    "target_list": [
+      "homo",
+      "lumo",
+      "gap"
+    ],
+    "element_set": [
+      "C",
+      "F",
+      "H",
+      "N",
+      "O"
+    ],
+    "val_prop": 0.0,
+    "test_prop": 0.0,
+    "seed": 42,
+    "extra_dataset_info": {},
+    "log_scale_features": false,
+    "log_scale_targets": false,
+    "standard_scale_features": true,
+    "standard_scale_targets": true,
+    "extra_keys": {
+      "atom": [
+        "new_extra_feat_atom_Hamiltonian_K",
+        "new_extra_feat_atom_e_density",
+        "new_extra_feat_atom_lap_e_density",
+        "new_extra_feat_atom_e_loc_func",
+        "new_extra_feat_atom_ave_loc_ion_E",
+        "new_extra_feat_atom_delta_g_promolecular",
+        "new_extra_feat_atom_delta_g_hirsh",
+        "new_extra_feat_atom_esp_nuc",
+        "new_extra_feat_atom_esp_e",
+        "new_extra_feat_atom_esp_total",
+        "new_extra_feat_atom_grad_norm",
+        "new_extra_feat_atom_lap_norm",
+        "new_extra_feat_atom_eig_hess",
+        "new_extra_feat_atom_det_hessian",
+        "new_extra_feat_atom_ellip_e_dens",
+        "new_extra_feat_atom_eta",
+        "new_extra_feat_atom_energy_density",
+        "new_extra_feat_atom_lol"
+      ],
+      "bond": [
+        "new_extra_feat_bond_Lagrangian_K",
+        "new_extra_feat_bond_Hamiltonian_K",
+        "new_extra_feat_bond_e_density",
+        "new_extra_feat_bond_lap_e_density",
+        "new_extra_feat_bond_e_loc_func",
+        "new_extra_feat_bond_ave_loc_ion_E",
+        "new_extra_feat_bond_delta_g_promolecular",
+        "new_extra_feat_bond_delta_g_hirsh",
+        "new_extra_feat_bond_esp_nuc",
+        "new_extra_feat_bond_esp_e",
+        "new_extra_feat_bond_esp_total",
+        "new_extra_feat_bond_grad_norm",
+        "new_extra_feat_bond_lap_norm",
+        "new_extra_feat_bond_eig_hess",
+        "new_extra_feat_bond_det_hessian",
+        "new_extra_feat_bond_ellip_e_dens",
+        "new_extra_feat_bond_eta",
+        "new_extra_feat_bond_energy_density",
+        "new_extra_feat_bond_lol"
+      ],
+      "global": [
+        "homo",
+        "lumo",
+        "gap"
+      ]
+    }
+  },
+  "model": {
+    "atom_feature_size": 31,
+    "bond_feature_size": 26,
+    "global_feature_size": 3,
+    "compile": false,
+    "compiled": false,
+    "conv_fn": "ResidualBlock",
+    "initializer": "kaiming",
+    "target_dict": {
+      "global": [
+        "homo",
+        "lumo",
+        "gap"
+      ]
+    },
+    "ntasks": 3,
+    "dropout": 0.1,
+    "batch_norm_tf": true,
+    "activation": "ReLU",
+    "bias": true,
+    "norm": "both",
+    "aggregate": "sum",
+    "n_conv_layers": 10,
+    "lr": 0.012034891741807852,
+    "weight_decay": 5e-05,
+    "lr_plateau_patience": 25,
+    "lr_scale_factor": 0.5,
+    "scheduler_name": "reduce_on_plateau",
+    "loss_fn": "mse",
+    "resid_n_graph_convs": 2,
+    "embedding_size": 16,
+    "fc_layer_size": [
+      1024,
+      1024
+    ],
+    "shape_fc": "flat",
+    "fc_dropout": 0.0,
+    "fc_batch_norm": true,
+    "n_fc_layers": 2,
+    "global_pooling_fn": "GlobalAttentionPoolingThenCat",
+    "ntypes_pool": [
+      "atom",
+      "bond",
+      "global"
+    ],
+    "ntypes_pool_direct_cat": [
+      "global"
+    ],
+    "lstm_iters": 5,
+    "lstm_layers": 3,
+    "num_heads": 3,
+    "feat_drop": 0.1,
+    "attn_drop": 0.0,
+    "residual": false,
+    "num_heads_gat": 3,
+    "dropout_feat_gat": 0.2,
+    "dropout_attn_gat": 0.1,
+    "hidden_size_gat": 50,
+    "hidden_size": 30,
+    "residual_gat": true,
+    "classifier": false,
+    "batch_norm": true,
+    "pooling_ntypes": [
+      "atom",
+      "bond",
+      "global"
+    ],
+    "pooling_ntypes_direct": [
+      "global"
+    ],
+    "fc_hidden_size_1": 1024,
+    "fc_num_layers": 2,
+    "restore": false,
+    "max_epochs": 1000,
+    "extra_stop_patience": 50
+  }
+}
