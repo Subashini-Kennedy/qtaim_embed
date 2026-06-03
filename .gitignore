@@ -37,6 +37,9 @@ env/qtaim_embed/
 data_suba/*.pkl
 data_suba/filtered_qtaim_fullqm9/
 data_suba/filtered_qtaim_fullqm9_corrected/
+!test_43k.csv
+!train_43k.csv
+!val_43k.csv
 data_suba/filtered_qtaim_fullqm9_elf/
 data_suba/filtered_qtaim_fullqm9_elf_corrected/
 data_suba/merged_43k.pkl

@@ -83,7 +83,7 @@ for _, row in merged.iterrows():
     print(f"  QTAIM bonds:    {len(qtaim_pairs)}")
     print(f"  Overlap:        {len(common)}")
     print(f"  ELF-only:       {len(elf_only)}  (real bonds missing from QTAIM)")
-    print(f"  QTAIM-only:     {len(qtaim_only)}  (non-covalent BCPs absent in ELF)")
+    print(f"  QTAIM-only:     {len(qtaim_only)}  (non-covalent elf BCPs absent in ELF)")
     print(f"  Common:         {sorted([pair_to_str(p,atom_z) for p in common])}")
     print(f"  ELF-only:       {sorted([pair_to_str(p,atom_z) for p in elf_only])}")
     print(f"  QTAIM-only:     {sorted([pair_to_str(p,atom_z) for p in qtaim_only])}")
